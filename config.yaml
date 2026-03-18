@@ -1,18 +1,20 @@
-# URL 列表，支持如下两种写法：
+# URL list (supports list or inline array)
 # urls:
 #   - https://example.com
 #   - https://httpbin.org/status/404
-# 或：
+# or:
 # urls: [https://example.com, https://httpbin.org/status/404]
 urls:
-  - https://ai.dkk.qzz.io/v1
-  - https://kkapi.cn.mt/v1
+  - https://9333333.xyz/v1
   - https://qqkk.us.ci/v1
-  - https://ai.qqkk.cc.cd/v1
-  
 
-# 单个 URL 请求超时时间（毫秒）
+#  - https://ai.qqkk.cc.cd/v1
+
+# Per URL timeout in milliseconds
 timeout_ms: 10000
 
-# 并发测试协程数
+# Repeat count per URL (optional, default 2)
+repeat_count: 2
+
+# Concurrent workers
 concurrency: 1
