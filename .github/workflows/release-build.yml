@@ -1,4 +1,4 @@
-name: Build Windows x64 On Release
+name: Build Multi-Platform On Release
 
 on:
   release:
@@ -8,8 +8,32 @@ permissions:
   contents: write
 
 jobs:
-  build-windows-x64:
-    runs-on: windows-latest
+  build-all:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            file_base: kkapi_windows_amd64
+            bin_ext: .exe
+            archive_ext: .zip
+          - goos: darwin
+            goarch: amd64
+            file_base: kkapi_macos_amd64
+            bin_ext: ""
+            archive_ext: .tar.gz
+          - goos: darwin
+            goarch: arm64
+            file_base: kkapi_macos_arm64
+            bin_ext: ""
+            archive_ext: .tar.gz
+          - goos: linux
+            goarch: amd64
+            file_base: kkapi_linux_amd64
+            bin_ext: ""
+            archive_ext: .tar.gz
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,23 +44,26 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Build Windows x64 binary
-        shell: pwsh
+      - name: Build ${{ matrix.goos }}/${{ matrix.goarch }} binary
+        shell: bash
         run: |
-          $env:GOOS = "windows"
-          $env:GOARCH = "amd64"
-          go build -trimpath -ldflags "-s -w" -o "kkapi_windows_x64.exe" .
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -trimpath -ldflags "-s -w" -o "${{ matrix.file_base }}${{ matrix.bin_ext }}" .
 
-      - name: Package zip
-        shell: pwsh
+      - name: Package artifact
+        shell: bash
         run: |
-          New-Item -ItemType Directory -Path "release_bundle" | Out-Null
-          Copy-Item "kkapi_windows_x64.exe" "release_bundle\\kkapi_windows_x64.exe"
-          Copy-Item "config.yaml" "release_bundle\\config.yaml"
-          Compress-Archive -Path "release_bundle\\*" -DestinationPath "kkapi_windows_x64.zip"
+          archive_name="${{ matrix.file_base }}${{ matrix.archive_ext }}"
+          mkdir -p release_bundle
+          cp "${{ matrix.file_base }}${{ matrix.bin_ext }}" "release_bundle/${{ matrix.file_base }}${{ matrix.bin_ext }}"
+          cp "config.yaml" "release_bundle/config.yaml"
+          if [ "${{ matrix.archive_ext }}" = ".zip" ]; then
+            (cd release_bundle && zip -r "../${archive_name}" .)
+          else
+            tar -czf "${archive_name}" -C release_bundle .
+          fi
 
       - name: Upload asset to release
         uses: softprops/action-gh-release@v2
         with:
-          files: kkapi_windows_x64.zip
+          files: ${{ matrix.file_base }}${{ matrix.archive_ext }}
           overwrite_files: true
